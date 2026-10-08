@@ -1,6 +1,6 @@
 import { Settings, Signal, Cpu, RefreshCw, AlertTriangle } from 'lucide-react';
 import { getLastSync, MODEL_OPTIONS, getModel } from '../lib/settings.js';
-import { LANGUAGES } from '../lib/i18n.js';
+import { LANGUAGES, t } from '../lib/i18n.js';
 
 export default function TopBar({ mode, moduleId, streaming, onOpenSettings, lastSyncTs, lang, onLang }) {
   const model = MODEL_OPTIONS.find((m) => m.id === getModel()) || MODEL_OPTIONS[0];
