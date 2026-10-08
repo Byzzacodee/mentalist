@@ -6,8 +6,11 @@ import {
   KNOWLEDGE_CITE,
   simulatorPersonaPrompt,
   SIMULATOR_FEEDBACK_PROMPT,
+  buildSimSystem,
+  buildFeedbackSystem,
 } from '../config/systemPrompts.js';
 import Markdown from './Markdown.jsx';
+import { t } from '../lib/i18n.js';
 
 const PRESETS = [
   { name: 'NARCISSISTIC MANAGER', role: 'covert-aggressive supervisor (Simon / Hotchkiss archetype)', stance: 'credit-grabbing, scope creep, guilt-tripping, silent punishments', aggression: 6 },
@@ -19,7 +22,7 @@ const PRESETS = [
 /**
  * CONFLICT SIMULATOR — roleplay arena + collapsible live feedback.
  */
-export default function ConflictSimulator({ apiKey, model }) {
+export default function ConflictSimulator({ apiKey, model, lang }) {
   const { stream, complete, streaming, abort } = useOpenRouter();
   const [presetIdx, setPresetIdx] = useState(0);
   const [persona, setPersona] = useState(PRESETS[0]);
@@ -57,7 +60,7 @@ export default function ConflictSimulator({ apiKey, model }) {
     setMessages([
       {
         role: 'assistant',
-        content: `**[SIMULATION START]** Persona "${p.name}" is live. Aggression ${p.aggression}/10.\n\nType your opening move. Type /STOP to end the simulation, /RESET to reconfigure. The Live Feedback box (below) grades every move and proposes counters.`,
+        content: t(lang, 'simStart').replace('{name}', p.name).replace('{a}', p.aggression),
       },
     ]);
     setStarted(true);
@@ -65,7 +68,7 @@ export default function ConflictSimulator({ apiKey, model }) {
   }
 
   function stop() {
-    setMessages((m) => [...m, { role: 'assistant', content: '**[SIMULATION ENDED]** — /STOP received. Reset or reconfigure to run again.' }]);
+    setMessages((m) => [...m, { role: 'assistant', content: t(lang, 'simEnded') }]);
     setStarted(false);
   }
 
@@ -79,12 +82,7 @@ export default function ConflictSimulator({ apiKey, model }) {
 
     setMessages((m) => [...m, { role: 'user', content: text }]);
 
-    const system = [
-      simulatorPersonaPrompt(persona),
-      CORE_DIRECTIVES,
-      '## KNOWLEDGE CORE LIBRARY (cite from these sources)',
-      KNOWLEDGE_CITE,
-    ].join('\n\n');
+    const system = buildSimSystem(persona, lang);
 
     const apiHistory = messages.map((m) => ({ role: m.role, content: m.content }));
 
@@ -109,7 +107,7 @@ export default function ConflictSimulator({ apiKey, model }) {
             const fb = await complete({
               apiKey,
               model,
-              system: SIMULATOR_FEEDBACK_PROMPT,
+              system: buildFeedbackSystem(lang),
               messages: [
                 ...apiHistory,
                 { role: 'user', content: text },
@@ -119,7 +117,7 @@ export default function ConflictSimulator({ apiKey, model }) {
             });
             setFeedback(fb);
           } catch (e) {
-            setFeedback(`Feedback unavailable: ${e.message}`);
+            setFeedback(t(lang, 'feedbackUnavailable') + e.message);
           }
         }
       },
@@ -137,12 +135,12 @@ export default function ConflictSimulator({ apiKey, model }) {
         <div className="flex items-center gap-2 border-b border-zinc-800 px-3 py-2">
           <Flame size={13} className="text-amber-500" />
           <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">
-            CONFLICT ARENA
+            {t(lang, 'conflictArena')}
           </span>
           <div className="flex-1" />
           {started && (
             <span className="flex items-center gap-1 font-mono text-[9px] text-red-400">
-              <span className="h-1.5 w-1.5 animate-pulse bg-red-500" /> LIVE
+              <span className="h-1.5 w-1.5 animate-pulse bg-red-500" /> {t(lang, 'live')}
             </span>
           )}
         </div>
@@ -171,7 +169,7 @@ export default function ConflictSimulator({ apiKey, model }) {
 
             <div>
               <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                Custom persona / stance (overrides preset)
+                {t(lang, 'customPersona')}
               </label>
               <input
                 value={custom}
@@ -183,7 +181,7 @@ export default function ConflictSimulator({ apiKey, model }) {
 
             <div>
               <label className="mb-1 flex items-center justify-between font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                Aggression <span className="text-amber-500">{aggression}/10</span>
+                {t(lang, 'aggression')} <span className="text-amber-500">{aggression}/10</span>
               </label>
               <input
                 type="range"
@@ -200,11 +198,11 @@ export default function ConflictSimulator({ apiKey, model }) {
               disabled={!apiKey}
               className="border border-amber-800 bg-ink-800 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-amber-500 transition-colors hover:bg-amber-900/20 disabled:opacity-30"
             >
-              ▶ ENGAGE PERSONA
+              ▶ ENGAGE
             </button>
             {!apiKey && (
               <p className="flex items-center gap-1 font-mono text-[9px] text-red-400">
-                <Gauge size={10} /> API key required — open Settings.
+                <Gauge size={10} /> {t(lang, 'apiKeyRequired')}
               </p>
             )}
           </div>
@@ -223,7 +221,7 @@ export default function ConflictSimulator({ apiKey, model }) {
                         m.role === 'user' ? 'text-amber-600' : 'text-red-400'
                       }`}
                     >
-                      {m.role === 'user' ? '▸ YOU' : `▸ ${persona.name}`}
+                      {m.role === 'user' ? `▸ ${t(lang, 'you')}` : `▸ ${persona.name}`}
                     </div>
                     <Markdown content={m.content} />
                   </div>
@@ -271,7 +269,7 @@ export default function ConflictSimulator({ apiKey, model }) {
         >
           <Gauge size={13} className="text-emerald-500" />
           <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">
-            LIVE FEEDBACK
+            {t(lang, 'liveFeedback')}
           </span>
           <div className="flex-1" />
           <label
@@ -284,7 +282,7 @@ export default function ConflictSimulator({ apiKey, model }) {
               onChange={(e) => setFeedbackEnabled(e.target.checked)}
               className="accent-emerald-600"
             />
-            ON
+            {t(lang, 'feedbackOn')}
           </label>
           {feedbackOpen ? (
             <ChevronUp size={12} className="text-zinc-500" />
@@ -296,9 +294,7 @@ export default function ConflictSimulator({ apiKey, model }) {
           <div className="min-h-[160px] flex-1 overflow-y-auto p-3">
             {!feedback && (
               <p className="font-mono text-[10px] leading-relaxed text-zinc-600">
-                {feedbackEnabled
-                  ? 'After each opponent move, the analyst grades your counter (tactic detected, move grade A–D, next counter, leverage meter 0–100).'
-                  : 'Feedback disabled. Enable to analyse moves in real time.'}
+                {feedbackEnabled ? t(lang, 'feedbackHint') : t(lang, 'feedbackOff')}
               </p>
             )}
             {feedback && (
@@ -318,7 +314,7 @@ export default function ConflictSimulator({ apiKey, model }) {
               ABORT
             </button>
             <div className="flex-1" />
-            <span className="font-mono text-[9px] text-zinc-600">2nd model pass</span>
+            <span className="font-mono text-[9px] text-zinc-600">{t(lang, 'secondPass')}</span>
           </div>
         )}
       </div>

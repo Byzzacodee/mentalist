@@ -10,11 +10,12 @@ import {
 import { snapshotDatabase, restoreDatabase, downloadJson, encryptPayload, decryptPayload } from '../lib/crypto.js';
 import { pushToCloud, pullFromCloud, markSynced } from '../lib/sync.js';
 import db from '../db/dexie.js';
+import { t } from '../lib/i18n.js';
 
 /**
  * SETTINGS — API key, model selector, local backup/restore, encrypted cloud sync.
  */
-export default function SettingsModal({ onClose, onToast, onDataChanged }) {
+export default function SettingsModal({ onClose, onToast, onDataChanged, lang }) {
   const [apiKey, setApiKeyLocal] = useState(getApiKey());
   const [model, setModelLocal] = useState(getModel());
   const [tab, setTab] = useState('api');
@@ -38,7 +39,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
     setTestResult(null);
     try {
       await testConnection(apiKey, model);
-      setTestResult({ ok: true, msg: 'Connection OK — model reachable' });
+      setTestResult({ ok: true, msg: t(lang, 'testOk') });
     } catch (e) {
       setTestResult({ ok: false, msg: e.message });
     } finally {
@@ -49,13 +50,13 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
   function saveApi() {
     setApiKey(apiKey);
     setModel(model);
-    onToast?.('API settings saved to LocalStorage');
+    onToast?.(t(lang, 'toastSavedApi'));
   }
 
   async function handleExport() {
     const snap = await snapshotDatabase(db);
     downloadJson(`mentalist-backup-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.json`, snap);
-    onToast?.('Local backup exported');
+    onToast?.(t(lang, 'toastExport'));
   }
 
   function handleImportFile(e) {
@@ -67,10 +68,10 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
         let obj = JSON.parse(reader.result);
         if (typeof obj === 'string') obj = JSON.parse(obj);
         const counts = await restoreDatabase(db, obj);
-        onToast?.(`Restored: ${counts.messages} msgs, ${counts.chats} chats, ${counts.sos} SOS`);
+        onToast?.(t(lang, 'toastImportOk') + `${counts.messages} msgs, ${counts.chats} chats, ${counts.sos} SOS`);
         onDataChanged();
       } catch (err) {
-        onToast?.(`Import failed: ${err.message}`, 'error');
+        onToast?.(t(lang, 'toastImportFail') + err.message, 'error');
       }
     };
     reader.readAsText(f);
@@ -78,9 +79,9 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
   }
 
   async function handleWipe() {
-    if (!window.confirm('WIPE ALL LOCAL DATA (chats, messages, SOS presets)? This cannot be undone.')) return;
+    if (!window.confirm(t(lang, 'wipeConfirm'))) return;
     await Promise.all([db.chats.clear(), db.messages.clear(), db.sos.clear(), db.profiles.clear()]);
-    onToast?.('Local database wiped');
+    onToast?.(t(lang, 'toastWipe'));
     onDataChanged();
   }
 
@@ -93,9 +94,9 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
       const res = await pushToCloud(enc, masterKey);
       markSynced();
       if (res.binId) setBinIdLocal(res.binId);
-      onToast?.(`Encrypted payload ${res.action} to JSONBin ${res.binId}`);
+      onToast?.(t(lang, 'toastPushOk') + `${res.action} → JSONBin ${res.binId}`);
     } catch (e) {
-      onToast?.(`Push failed: ${e.message}`, 'error');
+      onToast?.(t(lang, 'toastPushFail') + e.message, 'error');
     } finally {
       setBusy(null);
     }
@@ -108,19 +109,19 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
       const snap = decryptPayload(payload, passphrase);
       const counts = await restoreDatabase(db, snap);
       markSynced();
-      onToast?.(`Cloud restored: ${counts.messages} msgs, ${counts.chats} chats, ${counts.sos} SOS`);
+      onToast?.(t(lang, 'toastPullOk') + `${counts.messages} msgs, ${counts.chats} chats, ${counts.sos} SOS`);
       onDataChanged();
     } catch (e) {
-      onToast?.(`Pull failed: ${e.message}`, 'error');
+      onToast?.(t(lang, 'toastPullFail') + e.message, 'error');
     } finally {
       setBusy(null);
     }
   }
 
   const tabs = [
-    { id: 'api', label: 'API CONNECTION', icon: KeyRound },
-    { id: 'data', label: 'LOCAL DATA', icon: Database },
-    { id: 'cloud', label: 'ENCRYPTED SYNC', icon: CloudUpload },
+    { id: 'api', label: t(lang, 'apiConnection'), icon: KeyRound },
+    { id: 'data', label: t(lang, 'localData'), icon: Database },
+    { id: 'cloud', label: t(lang, 'encryptedSync'), icon: CloudUpload },
   ];
 
   return (
@@ -169,7 +170,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
             <>
               <div>
                 <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                  OpenRouter API Key
+                  {t(lang, 'apiKeyLabel')}
                 </label>
                 <input
                   type="password"
@@ -179,14 +180,13 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
                   className="w-full border border-zinc-700 bg-ink-850 px-3 py-2 font-mono text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:border-amber-700 focus:outline-none"
                 />
                 <p className="mt-1 font-mono text-[9px] leading-relaxed text-zinc-600">
-                  Stored in LocalStorage of this device only. Client-side apps can be inspected —
-                  for shared deployments, proxy requests through your own backend.
+                  {t(lang, 'apiKeyNote')}
                 </p>
               </div>
 
               <div>
                 <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                  Model
+                  {t(lang, 'modelLabel')}
                 </label>
                 <div className="space-y-1.5">
                   {MODEL_OPTIONS.map((m) => (
@@ -220,14 +220,14 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
                   onClick={saveApi}
                   className="border border-amber-800 bg-ink-800 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-amber-500 hover:bg-amber-900/20"
                 >
-                  SAVE
+                  {t(lang, 'save')}
                 </button>
                 <button
                   onClick={handleTest}
                   disabled={testing || !apiKey}
                   className="border border-emerald-800 bg-ink-800 px-4 py-2 font-mono text-[10px] uppercase tracking-widest text-emerald-500 hover:bg-emerald-900/20 disabled:opacity-30"
                 >
-                  {testing ? 'TESTING…' : 'TEST CONNECTION'}
+                  {testing ? t(lang, 'testing') : t(lang, 'test')}
                 </button>
                 {testResult && (
                   <span
@@ -247,20 +247,20 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
             <>
               <div className="border border-zinc-800 bg-ink-850 p-3">
                 <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
-                  LOCAL BACKUP (JSON — Dexie/IndexedDB full dump)
+                  {t(lang, 'backupNote')}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleExport}
                     className="flex items-center gap-1.5 border border-zinc-600 bg-ink-800 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-zinc-300 hover:text-zinc-100"
                   >
-                    <FileDown size={12} /> Export JSON
+                    <FileDown size={12} /> {t(lang, 'exportJson')}
                   </button>
                   <button
                     onClick={() => fileRef.current?.click()}
                     className="flex items-center gap-1.5 border border-zinc-600 bg-ink-800 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-zinc-300 hover:text-zinc-100"
                   >
-                    <FileUp size={12} /> Import JSON
+                    <FileUp size={12} /> {t(lang, 'importJson')}
                   </button>
                   <input
                     ref={fileRef}
@@ -273,18 +273,17 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
                     onClick={handleWipe}
                     className="flex items-center gap-1.5 border border-red-800 bg-ink-800 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-red-400 hover:bg-red-900/20"
                   >
-                    <Trash2 size={12} /> Wipe DB
+                    <Trash2 size={12} /> {t(lang, 'wipeDb')}
                   </button>
                 </div>
               </div>
 
               <div className="border border-zinc-800 bg-ink-850 p-3">
                 <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
-                  STORAGE ENGINE
+                  {t(lang, 'storageEngine')}
                 </div>
                 <p className="font-mono text-[10px] leading-relaxed text-zinc-500">
-                  Dexie.js → IndexedDB. Tables: <span className="text-zinc-300">chats, messages, sos, profiles</span>.
-                  Import/export preserves all tables verbatim. Import replaces current data.
+                  Dexie.js → IndexedDB. {t(lang, 'storageNote')}
                 </p>
               </div>
             </>
@@ -294,16 +293,14 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
             <>
               <div className="border border-zinc-800 bg-ink-850 p-3">
                 <div className="mb-2 flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
-                  <CloudUpload size={11} /> AES-256 ENCRYPTED SYNC VIA JSONBIN.IO
+                  <CloudUpload size={11} /> {t(lang, 'aesTitle')}
                 </div>
                 <p className="mb-3 font-mono text-[10px] leading-relaxed text-zinc-500">
-                  Flow: Dexie snapshot → AES encrypt with your passphrase → push to a private
-                  JSONBin. The server stores ciphertext only. Pull → decrypt with passphrase →
-                  restore. Passphrase is never transmitted or stored.
+                  {t(lang, 'aesNote')}
                 </p>
 
                 <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                  Sync passphrase (≥ 8 chars, your secret, not stored)
+                  {t(lang, 'syncPassphrase')}
                 </label>
                 <input
                   type="password"
@@ -314,7 +311,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
                 />
 
                 <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                  JSONBin.io Master Key (X-Master-Key)
+                  {t(lang, 'masterKeyLabel')}
                 </label>
                 <input
                   type="password"
@@ -325,7 +322,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
                 />
 
                 <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-                  Bin ID (auto-filled after first push)
+                  {t(lang, 'binIdLabel')}
                 </label>
                 <input
                   value={binId}
@@ -343,18 +340,18 @@ export default function SettingsModal({ onClose, onToast, onDataChanged }) {
                     disabled={busy || !passphrase || !masterKey}
                     className="flex items-center gap-1.5 border border-amber-800 bg-ink-800 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-amber-500 hover:bg-amber-900/20 disabled:opacity-30"
                   >
-                    <CloudUpload size={12} /> {busy === 'push' ? 'PUSHING…' : 'Push Encrypted'}
+                    <CloudUpload size={12} /> {busy === 'push' ? '…' : t(lang, 'pushEnc')}
                   </button>
                   <button
                     onClick={handlePull}
                     disabled={busy || !passphrase || !masterKey || !binId}
                     className="flex items-center gap-1.5 border border-cyan-800 bg-ink-800 px-3 py-2 font-mono text-[10px] uppercase tracking-widest text-cyan-400 hover:bg-cyan-900/20 disabled:opacity-30"
                   >
-                    <CloudDownload size={12} /> {busy === 'pull' ? 'PULLING…' : 'Pull & Decrypt'}
+                    <CloudDownload size={12} /> {busy === 'pull' ? '…' : t(lang, 'pullDec')}
                   </button>
                   {binId && (
                     <span className="flex items-center gap-1 font-mono text-[9px] text-zinc-600">
-                      <Globe size={10} /> bin: {binId.slice(0, 8)}…
+                      <Globe size={10} /> {t(lang, 'binPrefix')} {binId.slice(0, 8)}…
                     </span>
                   )}
                 </div>

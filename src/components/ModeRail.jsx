@@ -1,22 +1,23 @@
 import { Brain, Swords, Crosshair, Shield, MessageSquare, ScanSearch, Flame, HeartPulse, LifeBuoy, Plus } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
+import { t } from '../lib/i18n.js';
 
 export const MODES = [
-  { id: 'psych', label: 'PSYCHOLOGY & CBT', short: 'PSYCH', icon: Brain, color: '#10b981', desc: 'Grounding · CBT restructuring · polyvagal state shifts' },
-  { id: 'manip', label: 'MANIPULATION & COUNTER', short: 'COUNTER', icon: Swords, color: '#d97706', desc: 'Subtext dissection · verbal counter-scripts' },
-  { id: 'strategy', label: 'LONG-TERM CAMPAIGN', short: 'CAMPAIGN', icon: Crosshair, color: '#06b6d4', desc: 'OODA loops · game theory · power balance' },
-  { id: 'cyber', label: 'CYBER & OPSEC', short: 'OPSEC', icon: Shield, color: '#f43f5e', desc: 'STRIDE · OSINT defense · PSYOP countermeasures' },
+  { id: 'psych', short: 'PSYCH', icon: Brain, color: '#10b981', labelKey: 'mode_psych', descKey: 'mode_psych_desc' },
+  { id: 'manip', short: 'COUNTER', icon: Swords, color: '#d97706', labelKey: 'mode_manip', descKey: 'mode_manip_desc' },
+  { id: 'strategy', short: 'CAMPAIGN', icon: Crosshair, color: '#06b6d4', labelKey: 'mode_strategy', descKey: 'mode_strategy_desc' },
+  { id: 'cyber', short: 'OPSEC', icon: Shield, color: '#f43f5e', labelKey: 'mode_cyber', descKey: 'mode_cyber_desc' },
 ];
 
 export const MODULES = [
-  { id: 'chat', label: 'OPERATOR CHAT', icon: MessageSquare },
-  { id: 'decon', label: 'MESSAGE DECONSTRUCTOR', icon: ScanSearch },
-  { id: 'sim', label: 'CONFLICT SIMULATOR', icon: Flame },
-  { id: 'anxiety', label: 'ANXIETY DISSECTOR', icon: HeartPulse },
-  { id: 'sos', label: 'SOS CONTROL', icon: LifeBuoy },
+  { id: 'chat', icon: MessageSquare, labelKey: 'mod_chat' },
+  { id: 'decon', icon: ScanSearch, labelKey: 'mod_decon' },
+  { id: 'sim', icon: Flame, labelKey: 'mod_sim' },
+  { id: 'anxiety', icon: HeartPulse, labelKey: 'mod_anxiety' },
+  { id: 'sos', icon: LifeBuoy, labelKey: 'mod_sos' },
 ];
 
-export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos, onAddSos }) {
+export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos, onAddSos, lang }) {
   const { isTelegram, user } = useTelegram();
 
   return (
@@ -24,7 +25,7 @@ export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos
       {/* Modes */}
       <div className="border-b border-zinc-800 px-1 py-1">
         <div className="mb-1 hidden px-2 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600 sm:block">
-          OPERATIONAL MODE
+          {t(lang, 'operationalMode')}
         </div>
         {MODES.map((m) => {
           const Icon = m.icon;
@@ -37,11 +38,11 @@ export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos
               className={`group flex w-full items-center gap-2 border-l-2 px-2 py-2 text-left transition-colors ${
                 active ? 'bg-ink-800 text-zinc-100' : 'text-zinc-500 hover:bg-ink-850 hover:text-zinc-300'
               }`}
-              title={m.desc}
+              title={t(lang, m.descKey)}
             >
               <Icon size={16} style={{ color: active ? m.color : undefined }} />
               <span className="hidden font-mono text-[10px] font-medium tracking-wider sm:block">
-                {m.label}
+                {t(lang, m.labelKey)}
               </span>
             </button>
           );
@@ -51,7 +52,7 @@ export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos
       {/* Modules */}
       <div className="flex-1 overflow-y-auto px-1 py-1">
         <div className="mb-1 hidden px-2 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600 sm:block">
-          MODULES
+          {t(lang, 'modules')}
         </div>
         {MODULES.map((m) => {
           const Icon = m.icon;
@@ -67,14 +68,14 @@ export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos
               }`}
             >
               <Icon size={14} className={active ? 'text-amber-500' : ''} />
-              <span className="hidden font-mono text-[10px] tracking-wider sm:block">{m.label}</span>
+              <span className="hidden font-mono text-[10px] tracking-wider sm:block">{t(lang, m.labelKey)}</span>
             </button>
           );
         })}
 
         {/* SOS quick triggers */}
         <div className="mb-1 mt-3 hidden px-2 font-mono text-[9px] uppercase tracking-[0.15em] text-zinc-600 sm:block">
-          SOS PRESETS
+          {t(lang, 'sosPresets')}
         </div>
         <div className="space-y-0.5">
           {sosButtons.map((s) => (
@@ -96,7 +97,7 @@ export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos
             className="flex w-full items-center gap-2 px-2 py-1 text-zinc-600 transition-colors hover:text-amber-500"
           >
             <Plus size={12} />
-            <span className="hidden font-mono text-[9.5px] uppercase tracking-wider sm:block">Add preset</span>
+            <span className="hidden font-mono text-[9.5px] uppercase tracking-wider sm:block">{t(lang, 'addPreset')}</span>
           </button>
         </div>
       </div>
@@ -104,13 +105,13 @@ export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos
       {/* Env footer */}
       <div className="border-t border-zinc-800 px-2 py-2">
         <div className="hidden font-mono text-[9px] uppercase tracking-wider text-zinc-600 sm:block">
-          ENV
+          {t(lang, 'env')}
         </div>
         <div className="font-mono text-[9px] text-zinc-500">
           {isTelegram ? (
-            <span className="text-emerald-500">TG MINI APP {user ? `· ${user.first_name || 'user'}` : ''}</span>
+            <span className="text-emerald-500">{t(lang, 'tgMiniApp')} {user ? `· ${user.first_name || 'user'}` : ''}</span>
           ) : (
-            <span className="text-zinc-600">BROWSER PREVIEW</span>
+            <span className="text-zinc-600">{t(lang, 'browserPreview')}</span>
           )}
         </div>
       </div>

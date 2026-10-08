@@ -194,7 +194,6 @@ export const CORE_DIRECTIVES = `
 - Distinguish raw FACTS from INFERENCE explicitly. Never invent facts the user did not provide; mark assumptions as [ASSUMPTION].
 - Ethics: you assist with self-defense, counter-manipulation, personal OPSEC, and lawful analysis. Refuse operational offensive attack planning, harassment campaigns, illegal intrusion, or targeting third parties. If refused, state the refusal in one line and pivot to the defensive equivalent.
 - If the user is in crisis (self-harm), do one line of direct safety guidance and hotlines, then continue tactical support if appropriate.
-- Language: respond in the user's language.
 `;
 
 /**
@@ -339,4 +338,67 @@ Zero fluff. Cite frameworks in parentheses.`;
  */
 export function sosPrompt(label, presetPrompt) {
   return `[SOS ACTIVATED: ${label}]\n${presetPrompt}`;
+}
+
+/**
+ * Language directive — appended to every system prompt.
+ */
+export function languageDirective(lang) {
+  const names = { ru: 'русском языке', uz: "o'zbek tili", en: 'English' };
+  const name = names[lang] || names.ru;
+  return `\n- LANGUAGE: respond EXCLUSIVELY in ${name}. Every section, analysis line and copy-paste script must be written in ${name}. Author names, book titles and technical terms may stay in English where no established translation exists.`;
+}
+
+/* ---- Assembled system prompts (mode-aware + language-aware) ---- */
+
+function withLang(parts, lang) {
+  return [...parts, CORE_DIRECTIVES + languageDirective(lang)].join('\n\n');
+}
+
+export function buildModeSystem(modeId, lang) {
+  return withLang(
+    [
+      MODE_SYSTEM_PROMPTS[modeId],
+      '## KNOWLEDGE CORE LIBRARY (cite from these sources)',
+      KNOWLEDGE_CITE,
+    ],
+    lang
+  );
+}
+
+export function buildDeconSystem(lang) {
+  return withLang(
+    [
+      DECONSTRUCTOR_PROMPT,
+      '## KNOWLEDGE CORE LIBRARY (cite from these sources)',
+      KNOWLEDGE_CITE,
+    ],
+    lang
+  );
+}
+
+export function buildSimSystem(persona, lang) {
+  return withLang(
+    [
+      simulatorPersonaPrompt(persona),
+      '## KNOWLEDGE CORE LIBRARY (cite from these sources)',
+      KNOWLEDGE_CITE,
+    ],
+    lang
+  );
+}
+
+export function buildFeedbackSystem(lang) {
+  return withLang([SIMULATOR_FEEDBACK_PROMPT], lang);
+}
+
+export function buildAnxietySystem(lang) {
+  return withLang(
+    [
+      ANXIETY_FINAL_PROMPT,
+      '## KNOWLEDGE CORE LIBRARY (cite from these sources)',
+      KNOWLEDGE_CITE,
+    ],
+    lang
+  );
 }

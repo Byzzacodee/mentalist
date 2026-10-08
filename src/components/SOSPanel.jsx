@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { LifeBuoy, Plus, Pencil, Trash2, Save, X, Zap } from 'lucide-react';
 import db from '../db/dexie.js';
+import { t } from '../lib/i18n.js';
 
 const ACCENTS = ['#f43f5e', '#d97706', '#10b981', '#06b6d4', '#a78bfa'];
 
 /**
  * SOS CONTROL — full CRUD over emergency preset buttons (Dexie.js).
  */
-export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) {
+export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast, lang }) {
   const [editing, setEditing] = useState(null); // null | 'new' | sos object
   const [label, setLabel] = useState('');
   const [prompt, setPrompt] = useState('');
@@ -32,19 +33,19 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
     if (!label.trim() || !prompt.trim()) return;
     if (editing === 'new') {
       await db.sos.add({ label: label.trim(), prompt: prompt.trim(), accent, createdAt: Date.now() });
-      onToast?.(`Preset "${label.trim()}" created`);
+      onToast?.(t(lang, 'toastPresetCreated'));
     } else {
       await db.sos.update(editing.id, { label: label.trim(), prompt: prompt.trim(), accent });
-      onToast?.(`Preset "${label.trim()}" updated`);
+      onToast?.(t(lang, 'toastPresetUpdated'));
     }
     setEditing(null);
     onRefresh();
   }
 
   async function remove(s) {
-    if (!window.confirm(`Delete SOS preset "${s.label}"?`)) return;
+    if (!window.confirm(`${t(lang, 'deleteConfirm')}: "${s.label}"?`)) return;
     await db.sos.delete(s.id);
-    onToast?.('Preset deleted');
+    onToast?.(t(lang, 'toastPresetDeleted'));
     onRefresh();
   }
 
@@ -53,14 +54,14 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
       <div className="mb-3 flex items-center gap-2">
         <LifeBuoy size={14} className="text-rose-400" />
         <span className="font-mono text-[10px] uppercase tracking-widest text-zinc-300">
-          SOS PRESET REGISTRY
+          {t(lang, 'registry')}
         </span>
         <div className="flex-1" />
         <button
           onClick={openNew}
           className="flex items-center gap-1 border border-rose-800 bg-ink-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-rose-400 hover:bg-rose-900/20"
         >
-          <Plus size={12} /> Add preset
+          <Plus size={12} /> {t(lang, 'addPreset')}
         </button>
       </div>
 
@@ -69,10 +70,10 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
         <form onSubmit={save} className="mb-4 border border-rose-900/60 bg-ink-900 p-4">
           <div className="mb-3 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-rose-400">
             <Pencil size={11} />
-            {editing === 'new' ? 'NEW PRESET' : `EDIT // ${editing.label}`}
+            {editing === 'new' ? t(lang, 'newPreset') : t(lang, 'editPrefix') + editing.label}
           </div>
           <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-            Button label
+            {t(lang, 'buttonLabel')}
           </label>
           <input
             value={label}
@@ -81,7 +82,7 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
             className="mb-3 w-full border border-zinc-700 bg-ink-850 px-3 py-2 font-mono text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:border-rose-700 focus:outline-none"
           />
           <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-            Trigger prompt (sent to AI when pressed)
+            {t(lang, 'triggerPrompt')}
           </label>
           <textarea
             value={prompt}
@@ -91,7 +92,7 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
             className="mb-3 w-full resize-none border border-zinc-700 bg-ink-850 p-3 font-mono text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:border-rose-700 focus:outline-none"
           />
           <label className="mb-1 block font-mono text-[9px] uppercase tracking-widest text-zinc-600">
-            Accent color
+            {t(lang, 'accent')}
           </label>
           <div className="mb-4 flex gap-2">
             {ACCENTS.map((c) => (
@@ -111,14 +112,14 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
               disabled={!label.trim() || !prompt.trim()}
               className="flex items-center gap-1 border border-rose-800 bg-ink-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-rose-400 hover:bg-rose-900/20 disabled:opacity-30"
             >
-              <Save size={11} /> Save
+              <Save size={11} /> {t(lang, 'save')}
             </button>
             <button
               type="button"
               onClick={() => setEditing(null)}
               className="flex items-center gap-1 border border-zinc-700 bg-ink-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-zinc-400 hover:text-zinc-200"
             >
-              <X size={11} /> Cancel
+              <X size={11} /> {t(lang, 'cancel')}
             </button>
           </div>
         </form>
@@ -138,7 +139,7 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
                 className="flex items-center gap-1 border border-emerald-800 bg-ink-800 px-2 py-0.5 font-mono text-[9px] uppercase tracking-widest text-emerald-400 hover:bg-emerald-900/20"
                 title="Fire this preset in Operator Chat"
               >
-                <Zap size={10} /> Fire
+                <Zap size={10} /> {t(lang, 'fire')}
               </button>
               <button
                 onClick={() => openEdit(s)}
@@ -162,7 +163,7 @@ export default function SOSPanel({ sosButtons, onRefresh, onTrigger, onToast }) 
         ))}
         {sosButtons.length === 0 && (
           <div className="border border-dashed border-zinc-800 p-6 text-center font-mono text-[10px] text-zinc-600">
-            NO PRESETS — add one
+            {t(lang, 'noPresets')}
           </div>
         )}
       </div>

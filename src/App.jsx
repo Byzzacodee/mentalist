@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, X, MessageSquare } from 'lucide-react';
 import db, { seedDefaults } from './db/dexie.js';
 import { getApiKey, getModel } from './lib/settings.js';
+import { getLang, setLang, t } from './lib/i18n.js';
 import { useTelegram } from './hooks/useTelegram';
-import { ModeRail, MODES, MODULES } from './components/ModeRail.jsx';
+import { ModeRail, MODES } from './components/ModeRail.jsx';
 import TopBar from './components/TopBar.jsx';
 import ChatPanel from './components/ChatPanel.jsx';
 import MessageDeconstructor from './components/MessageDeconstructor.jsx';
@@ -15,6 +16,7 @@ import SettingsModal from './components/SettingsModal.jsx';
 export default function App() {
   const [modeId, setModeId] = useState('psych');
   const [moduleId, setModuleId] = useState('chat');
+  const [lang, setLangState] = useState(getLang());
   const [chats, setChats] = useState([]);
   const [activeChatId, setActiveChatId] = useState(null);
   const [sosButtons, setSosButtons] = useState([]);
@@ -32,6 +34,11 @@ export default function App() {
     clearTimeout(toastTimer.current);
     setToast({ msg, type });
     toastTimer.current = setTimeout(() => setToast(null), 3500);
+  }
+
+  function changeLang(l) {
+    setLang(l);
+    setLangState(l);
   }
 
   // ---- Data loaders -------------------------------------------------------
@@ -77,7 +84,7 @@ export default function App() {
     await db.messages.where('chatId').equals(id).delete();
     await refreshChats();
     setActiveChatId((cur) => (cur === id ? null : cur));
-    showToast('Chat deleted');
+    showToast(t(lang, 'toastChatDeleted'));
   }
 
   function onDataChanged() {
@@ -87,8 +94,6 @@ export default function App() {
 
   function onSosTrigger(preset) {
     setModuleId('chat');
-    setModeId((cur) => cur); // keep current mode
-    // Ensure a chat exists for firing
     if (!activeChat) {
       newChat().then((id) => setSosQueue({ preset, ts: Date.now(), chatId: id }));
     } else {
@@ -108,6 +113,7 @@ export default function App() {
         onAddSos={() => {
           setModuleId('sos');
         }}
+        lang={lang}
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
@@ -117,6 +123,8 @@ export default function App() {
           streaming={false}
           onOpenSettings={() => setSettingsOpen(true)}
           lastSyncTs={null}
+          lang={lang}
+          onLang={changeLang}
         />
 
         <div className="min-h-0 flex-1">
@@ -126,12 +134,12 @@ export default function App() {
               <div className="hidden w-52 shrink-0 flex-col border-r border-zinc-800 bg-ink-900 md:flex">
                 <div className="flex items-center justify-between border-b border-zinc-800 px-2.5 py-2">
                   <span className="flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
-                    <MessageSquare size={10} /> Operations
+                    <MessageSquare size={10} /> {t(lang, 'operations')}
                   </span>
                   <button
                     onClick={newChat}
                     className="border border-zinc-700 bg-ink-800 p-1 text-zinc-400 hover:border-amber-700 hover:text-amber-500"
-                    title="New chat"
+                    title={t(lang, 'newChat')}
                   >
                     <Plus size={11} />
                   </button>
@@ -156,7 +164,7 @@ export default function App() {
                           deleteChat(c.id);
                         }}
                         className="hidden p-0.5 text-zinc-600 hover:text-red-400 group-hover:block"
-                        title="Delete"
+                        title={t(lang, 'abort')}
                       >
                         <X size={10} />
                       </button>
@@ -164,12 +172,12 @@ export default function App() {
                   ))}
                   {chats.length === 0 && (
                     <p className="p-2.5 font-mono text-[9px] leading-relaxed text-zinc-600">
-                      No operations yet. Create one to begin.
+                      {t(lang, 'noChats')}
                     </p>
                   )}
                 </div>
                 <div className="border-t border-zinc-800 px-2.5 py-1.5 font-mono text-[9px] text-zinc-700">
-                  viewport {Math.round(height)}px
+                  {t(lang, 'viewport')} {Math.round(height)}px
                 </div>
               </div>
 
@@ -184,20 +192,22 @@ export default function App() {
                   onToast={showToast}
                   sosQueue={sosQueue}
                   onSosFired={() => setSosQueue(null)}
+                  lang={lang}
                 />
               </div>
             </div>
           )}
 
-          {moduleId === 'decon' && <MessageDeconstructor apiKey={apiKey} model={model} />}
-          {moduleId === 'sim' && <ConflictSimulator apiKey={apiKey} model={model} />}
-          {moduleId === 'anxiety' && <AnxietyDissector apiKey={apiKey} model={model} />}
+          {moduleId === 'decon' && <MessageDeconstructor apiKey={apiKey} model={model} lang={lang} />}
+          {moduleId === 'sim' && <ConflictSimulator apiKey={apiKey} model={model} lang={lang} />}
+          {moduleId === 'anxiety' && <AnxietyDissector apiKey={apiKey} model={model} lang={lang} />}
           {moduleId === 'sos' && (
             <SOSPanel
               sosButtons={sosButtons}
               onRefresh={refreshSos}
               onTrigger={onSosTrigger}
               onToast={showToast}
+              lang={lang}
             />
           )}
         </div>
@@ -208,6 +218,7 @@ export default function App() {
           onClose={() => setSettingsOpen(false)}
           onToast={showToast}
           onDataChanged={onDataChanged}
+          lang={lang}
         />
       )}
 

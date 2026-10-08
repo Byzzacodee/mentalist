@@ -2,14 +2,15 @@ import { useEffect, useRef, useState } from 'react';
 import { Send, Square } from 'lucide-react';
 import db from '../db/dexie.js';
 import { useOpenRouter } from '../hooks/useOpenRouter';
-import { MODE_SYSTEM_PROMPTS, CORE_DIRECTIVES, KNOWLEDGE_CITE, sosPrompt } from '../config/systemPrompts.js';
+import { MODE_SYSTEM_PROMPTS, CORE_DIRECTIVES, KNOWLEDGE_CITE, sosPrompt, buildModeSystem } from '../config/systemPrompts.js';
 import Markdown from './Markdown.jsx';
+import { t } from '../lib/i18n.js';
 
 /**
  * OPERATOR CHAT — primary chat surface for the selected operational mode.
  * Streams OpenRouter completions and persists to Dexie.js.
  */
-export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, onToast, sosQueue, onSosFired }) {
+export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, onToast, sosQueue, onSosFired, lang }) {
   const { stream, streaming, abort } = useOpenRouter();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -58,7 +59,7 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
     setError(null);
 
     if (!chat) {
-      onToast?.('Create or select a chat first');
+      onToast?.(t(lang, 'createOrSelect'));
       return;
     }
 
@@ -87,12 +88,7 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
       .filter((m) => m.id !== userMsgId)
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const system = [
-      MODE_SYSTEM_PROMPTS[mode.id],
-      CORE_DIRECTIVES,
-      '## KNOWLEDGE CORE LIBRARY (cite from these sources)',
-      KNOWLEDGE_CITE,
-    ].join('\n\n');
+    const system = buildModeSystem(mode.id, lang);
 
     let full = '';
     await stream({
@@ -125,7 +121,7 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
       {/* Chat context bar */}
       <div className="flex items-center gap-2 border-b border-zinc-800 bg-ink-900 px-3 py-1.5">
         <span className="font-mono text-[10px] uppercase tracking-wider text-zinc-500">
-          CHAT:
+          {t(lang, 'chatLabel')}
         </span>
         <span className="truncate font-mono text-[10px] text-zinc-200">
           {chat ? chat.title : '—'}
@@ -142,7 +138,7 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
           disabled={!streaming}
           className="flex items-center gap-1 border border-zinc-700 bg-ink-800 px-2 py-0.5 font-mono text-[10px] text-zinc-400 transition-colors hover:border-red-800 hover:text-red-400 disabled:opacity-30"
         >
-          <Square size={10} /> ABORT
+          <Square size={10} /> {t(lang, 'abort')}
         </button>
       </div>
 
@@ -151,18 +147,19 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
         {!chat && (
           <div className="flex h-full items-center justify-center">
             <p className="font-mono text-[11px] text-zinc-600">
-              NO ACTIVE CHAT — create one from the chat list
+              {t(lang, 'noActiveChat')}
             </p>
           </div>
         )}
         {chat && messages.length === 0 && (
           <div className="border border-dashed border-zinc-800 p-4">
             <div className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">
-              STANDBY // {mode.label}
+              {t(lang, 'standby')}
+              {t(lang, mode.labelKey)}
             </div>
-            <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">{mode.desc}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">{t(lang, mode.descKey)}</p>
             <p className="mt-2 font-mono text-[10px] text-zinc-600">
-              System core loaded: {mode.short.toLowerCase()} doctrine + knowledge library
+              [{mode.short}] · OpenRouter · streaming
             </p>
           </div>
         )}
@@ -181,7 +178,7 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
                   m.role === 'user' ? 'text-amber-600' : 'text-emerald-600'
                 }`}
               >
-                {m.role === 'user' ? '▸ OPERATOR' : '▸ ANALYST'}
+                {m.role === 'user' ? `▸ ${t(lang, 'operator')}` : `▸ ${t(lang, 'analyst')}`}
               </div>
               {m.role === 'user' ? (
                 <p className="whitespace-pre-wrap text-[13px] text-zinc-200">{m.content}</p>
@@ -215,7 +212,7 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
                 send();
               }
             }}
-            placeholder={`${mode.short} input — Enter to send, Shift+Enter for newline`}
+            placeholder={t(lang, 'inputPlaceholder')}
             rows={1}
             className="min-h-[38px] max-h-32 flex-1 resize-none border border-zinc-700 bg-ink-850 px-3 py-2 font-mono text-[12px] text-zinc-200 placeholder:text-zinc-600 focus:border-amber-700 focus:outline-none"
           />
@@ -229,11 +226,11 @@ export default function ChatPanel({ mode, chat, apiKey, model, onRefreshChats, o
         </div>
         <div className="mt-1 flex items-center justify-between font-mono text-[9px] text-zinc-600">
           <span>
-            {apiKey ? '● KEY LOADED' : '○ NO KEY — SETTINGS'}{' '}
+            {apiKey ? t(lang, 'keyLoaded') : t(lang, 'noKeySet')}{' '}
             <span className="text-zinc-700">|</span> {model}
           </span>
           <span>
-            {messages.length} msgs · Dexie/IndexedDB
+            {messages.length} {t(lang, 'msgsCount')}
           </span>
         </div>
       </div>
