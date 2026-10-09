@@ -1,4 +1,4 @@
-import { Brain, Swords, Crosshair, Shield, MessageSquare, ScanSearch, Flame, HeartPulse, LifeBuoy, Plus } from 'lucide-react';
+import { Brain, Swords, Crosshair, Shield, MessageSquare, ScanSearch, Flame, HeartPulse, LifeBuoy, Plus, GraduationCap, Zap } from 'lucide-react';
 import { useTelegram } from '../hooks/useTelegram';
 import { t } from '../lib/i18n.js';
 
@@ -15,6 +15,8 @@ export const MODULES = [
   { id: 'sim', icon: Flame, labelKey: 'mod_sim' },
   { id: 'anxiety', icon: HeartPulse, labelKey: 'mod_anxiety' },
   { id: 'sos', icon: LifeBuoy, labelKey: 'mod_sos' },
+  { id: 'training', icon: GraduationCap, labelKey: 'mod_training' },
+  { id: 'multiagent', icon: Zap, labelKey: 'mod_multiagent' },
 ];
 
 export function ModeRail({ modeId, onMode, moduleId, onModule, sosButtons, onSos, onAddSos, lang }) {

@@ -7,12 +7,133 @@
 const K = {
   API_KEY: 'mentalist.api_key',
   MODEL: 'mentalist.model',
+  API_KEYS: 'mentalist.api_keys',
+  MODELS: 'mentalist.models',
+  MULTI_AGENT: 'mentalist.multi_agent',
+  MULTI_AGENT_COUNT: 'mentalist.multi_agent_count',
   BIN_ID: 'mentalist.jsonbin_id',
   MASTER_KEY: 'mentalist.jsonbin_master',
   LAST_SYNC: 'mentalist.last_sync',
 };
 
 export const DEFAULT_MODEL = 'nvidia/nemotron-3-ultra-550b-a55b:free';
+
+export const MODE_LIST = ['psych', 'manip', 'strategy', 'cyber'];
+
+export const MODE_LABELS = {
+  psych: 'PSYCH',
+  manip: 'COUNTER',
+  strategy: 'CAMPAIGN',
+  cyber: 'OPSEC',
+};
+
+// ---- Multi-key storage ----
+export function getApiKeys() {
+  try {
+    const raw = localStorage.getItem(K.API_KEYS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveApiKeys(keys) {
+  localStorage.setItem(K.API_KEYS, JSON.stringify(keys));
+}
+
+export function addApiKey(label, key) {
+  const keys = getApiKeys();
+  const entry = { id: Date.now(), label: label || `Key ${keys.length + 1}`, key, createdAt: Date.now() };
+  keys.push(entry);
+  saveApiKeys(keys);
+  return entry;
+}
+
+export function deleteApiKey(id) {
+  saveApiKeys(getApiKeys().filter((k) => k.id !== id));
+}
+
+// ---- Multi-model storage ----
+export function getModels() {
+  try {
+    const raw = localStorage.getItem(K.MODELS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveModels(models) {
+  localStorage.setItem(K.MODELS, JSON.stringify(models));
+}
+
+export function addModel(label, modelId, vendor, modes) {
+  const models = getModels();
+  const entry = {
+    id: Date.now(),
+    label: label || `Model ${models.length + 1}`,
+    modelId,
+    vendor: vendor || 'Custom',
+    modes: modes || [],
+    createdAt: Date.now(),
+  };
+  models.push(entry);
+  saveModels(models);
+  return entry;
+}
+
+export function deleteModel(id) {
+  saveModels(getModels().filter((m) => m.id !== id));
+}
+
+export function updateModel(id, updates) {
+  const models = getModels();
+  const idx = models.findIndex((m) => m.id === id);
+  if (idx >= 0) {
+    models[idx] = { ...models[idx], ...updates };
+    saveModels(models);
+  }
+  return models[idx];
+}
+
+// ---- Multi-agent settings ----
+export function getMultiAgent() {
+  try {
+    return localStorage.getItem(K.MULTI_AGENT) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function setMultiAgent(on) {
+  localStorage.setItem(K.MULTI_AGENT, on ? '1' : '0');
+}
+
+export function getMultiAgentCount() {
+  try {
+    return parseInt(localStorage.getItem(K.MULTI_AGENT_COUNT) || '2', 10);
+  } catch {
+    return 2;
+  }
+}
+
+export function setMultiAgentCount(n) {
+  localStorage.setItem(K.MULTI_AGENT_COUNT, String(n));
+}
+
+// ---- Get models for a mode ----
+export function getModelsForMode(modeId) {
+  const models = getModels();
+  if (models.length === 0) return [];
+  return models.filter((m) => m.modes && m.modes.includes(modeId));
+}
+
+// ---- Get active API key (first one or fallback) ----
+export function getActiveApiKey() {
+  const keys = getApiKeys();
+  if (keys.length > 0) return keys[0].key;
+  return getApiKey();
+}
 
 export const MODEL_OPTIONS = [
   {

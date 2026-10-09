@@ -123,5 +123,64 @@ export function useOpenRouter() {
     []
   );
 
-  return { stream, complete, streaming, abort };
+  /**
+   * Parallel multi-agent: send the same prompt to multiple models simultaneously.
+   * Returns array of { modelId, label, content, error }.
+   */
+  const parallel = useCallback(
+    async ({ apiKeys, models, system, messages, userContent, temperature = 0.35 }) => {
+      const tasks = models.map(async (m, i) => {
+        const key = apiKeys[i % apiKeys.length];
+        try {
+          const res = await fetch(ENDPOINT, {
+            method: 'POST',
+            headers: headers(key),
+            body: JSON.stringify({
+              model: m.modelId,
+              stream: true,
+              temperature,
+              messages: [
+                ...(system ? [{ role: 'system', content: system }] : []),
+                ...messages,
+                { role: 'user', content: userContent },
+              ],
+            }),
+          });
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          let full = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const raw of lines) {
+              const line = raw.trim();
+              if (!line.startsWith('data:')) continue;
+              const data = line.slice(5).trim();
+              if (!data || data === '[DONE]') continue;
+              try {
+                const j = JSON.parse(data);
+                const delta = j?.choices?.[0]?.delta?.content;
+                if (delta) full += delta;
+              } catch {}
+            }
+          }
+          return { modelId: m.modelId, label: m.label, content: full, error: null };
+        } catch (e) {
+          return { modelId: m.modelId, label: m.label, content: '', error: e.message };
+        }
+      });
+      return Promise.all(tasks);
+    },
+    []
+  );
+
+  return { stream, complete, parallel, streaming, abort };
 }

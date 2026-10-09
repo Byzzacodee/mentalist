@@ -12,6 +12,8 @@ import ConflictSimulator from './components/ConflictSimulator.jsx';
 import AnxietyDissector from './components/AnxietyDissector.jsx';
 import SOSPanel from './components/SOSPanel.jsx';
 import SettingsModal from './components/SettingsModal.jsx';
+import TrainingPanel from './components/TrainingPanel.jsx';
+import MultiAgentPanel from './components/MultiAgentPanel.jsx';
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() => {
@@ -306,6 +308,12 @@ export default function App() {
               lang={lang}
             />
           )}
+          {mobilePanel === null && moduleId === 'training' && (
+            <TrainingPanel mode={mode} lang={lang} />
+          )}
+          {mobilePanel === null && moduleId === 'multiagent' && (
+            <MultiAgentPanel mode={mode} lang={lang} />
+          )}
         </div>
 
         {/* Bottom nav — 3 tabs */}
@@ -475,6 +483,8 @@ export default function App() {
               lang={lang}
             />
           )}
+          {moduleId === 'training' && <TrainingPanel mode={mode} lang={lang} />}
+          {moduleId === 'multiagent' && <MultiAgentPanel mode={mode} lang={lang} />}
         </div>
       </main>
 

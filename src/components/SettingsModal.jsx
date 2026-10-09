@@ -11,6 +11,7 @@ import { snapshotDatabase, restoreDatabase, downloadJson, encryptPayload, decryp
 import { pushToCloud, pullFromCloud, markSynced } from '../lib/sync.js';
 import db from '../db/dexie.js';
 import { t } from '../lib/i18n.js';
+import ModelManager from './ModelManager.jsx';
 
 /**
  * SETTINGS — API key, model selector, local backup/restore, encrypted cloud sync.
@@ -120,6 +121,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged, lang })
 
   const tabs = [
     { id: 'api', label: t(lang, 'apiConnection'), icon: KeyRound },
+    { id: 'models', label: t(lang, 'models'), icon: Cpu },
     { id: 'data', label: t(lang, 'localData'), icon: Database },
     { id: 'cloud', label: t(lang, 'encryptedSync'), icon: CloudUpload },
   ];
@@ -166,6 +168,8 @@ export default function SettingsModal({ onClose, onToast, onDataChanged, lang })
 
         {/* Body */}
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          {tab === 'models' && <ModelManager lang={lang} onToast={onToast} />}
+
           {tab === 'api' && (
             <>
               <div>
