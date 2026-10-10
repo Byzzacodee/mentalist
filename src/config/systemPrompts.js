@@ -354,10 +354,25 @@ export function languageDirective(lang) {
   return `\n- LANGUAGE: respond EXCLUSIVELY in ${name}. Every section, analysis line and copy-paste script must be written in ${name}. Author names, book titles and technical terms may stay in English where no established translation exists.`;
 }
 
+/**
+ * Custom user directive — appended to every system prompt as high-priority.
+ * Empty string = disabled.
+ */
+export function customDirectiveBlock() {
+  let d = '';
+  try {
+    d = localStorage.getItem('mentalist.custom_directive') || '';
+  } catch {
+    d = '';
+  }
+  d = d.trim();
+  return d ? `\n- USER DIRECTIVE (high priority, always obey): ${d}` : '';
+}
+
 /* ---- Assembled system prompts (mode-aware + language-aware) ---- */
 
 function withLang(parts, lang) {
-  return [...parts, CORE_DIRECTIVES + languageDirective(lang)].join('\n\n');
+  return [...parts, CORE_DIRECTIVES + languageDirective(lang) + customDirectiveBlock()].join('\n\n');
 }
 
 export function buildModeSystem(modeId, lang) {

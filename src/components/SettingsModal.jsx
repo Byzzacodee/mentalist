@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  X, KeyRound, Database, CloudUpload, CloudDownload, Trash2, Cpu,
+  X, KeyRound, Database, CloudUpload, CloudDownload, Trash2, Cpu, Brain,
   Check, AlertTriangle, FileDown, FileUp, Globe,
 } from 'lucide-react';
 import {
   getApiKey, setApiKey, getModel, setModel, MODEL_OPTIONS, testConnection,
-  getBinId, setBinId, getMasterKey, setMasterKey,
+  getBinId, setBinId, getMasterKey, setMasterKey, getCustomDirective, setCustomDirective,
 } from '../lib/settings.js';
 import { snapshotDatabase, restoreDatabase, downloadJson, encryptPayload, decryptPayload } from '../lib/crypto.js';
 import { pushToCloud, pullFromCloud, markSynced } from '../lib/sync.js';
@@ -26,6 +26,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged, lang })
   const [passphrase, setPassphrase] = useState('');
   const [masterKey, setMasterKeyLocal] = useState(getMasterKey());
   const [binId, setBinIdLocal] = useState(getBinId());
+  const [customDirective, setCustomDirective] = useState(getCustomDirective());
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +53,11 @@ export default function SettingsModal({ onClose, onToast, onDataChanged, lang })
     setApiKey(apiKey);
     setModel(model);
     onToast?.(t(lang, 'toastSavedApi'));
+  }
+
+  function savePersonality() {
+    setCustomDirective(customDirective);
+    onToast?.(t(lang, 'toastPersonalitySaved'));
   }
 
   async function handleExport() {
@@ -122,6 +128,7 @@ export default function SettingsModal({ onClose, onToast, onDataChanged, lang })
   const tabs = [
     { id: 'api', label: t(lang, 'apiConnection'), icon: KeyRound },
     { id: 'models', label: t(lang, 'models'), icon: Cpu },
+    { id: 'personality', label: t(lang, 'personality'), icon: Brain },
     { id: 'data', label: t(lang, 'localData'), icon: Database },
     { id: 'cloud', label: t(lang, 'encryptedSync'), icon: CloudUpload },
   ];
@@ -169,6 +176,39 @@ export default function SettingsModal({ onClose, onToast, onDataChanged, lang })
         {/* Body */}
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
           {tab === 'models' && <ModelManager lang={lang} onToast={onToast} />}
+
+          {tab === 'personality' && (
+            <div className="border border-zinc-800 bg-ink-850 p-3">
+              <div className="mb-2 font-mono text-[9px] uppercase tracking-widest text-zinc-500">
+                {t(lang, 'personalityDesc')}
+              </div>
+              <textarea
+                value={customDirective}
+                onChange={(e) => setCustomDirective(e.target.value)}
+                rows={6}
+                placeholder={t(lang, 'personalityPlaceholder')}
+                className="mb-3 w-full resize-none border border-zinc-700 bg-ink-900 p-3 font-mono text-[11px] text-zinc-200 placeholder:text-zinc-600 focus:border-amber-700 focus:outline-none"
+              />
+              <div className="mb-3 flex flex-wrap gap-1">
+                {['Отвечай ЗАГЛАВНЫМИ БУКВАМИ', 'Говори как сержант ВДВ', 'Без смягчений, жёстко', 'Только суть, без вступлений'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setCustomDirective(preset)}
+                    className="border border-zinc-700 bg-ink-800 px-2 py-1 font-mono text-[9px] text-zinc-400 hover:border-amber-700 hover:text-amber-500"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={savePersonality}
+                className="border border-amber-800 bg-ink-800 px-3 py-1.5 font-mono text-[10px] uppercase tracking-widest text-amber-500 hover:bg-amber-900/20"
+              >
+                {t(lang, 'save')}
+              </button>
+            </div>
+          )}
 
           {tab === 'api' && (
             <>

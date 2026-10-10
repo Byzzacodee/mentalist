@@ -11,6 +11,7 @@ const K = {
   MODELS: 'mentalist.models',
   MULTI_AGENT: 'mentalist.multi_agent',
   MULTI_AGENT_COUNT: 'mentalist.multi_agent_count',
+  CUSTOM_DIRECTIVE: 'mentalist.custom_directive',
   BIN_ID: 'mentalist.jsonbin_id',
   MASTER_KEY: 'mentalist.jsonbin_master',
   LAST_SYNC: 'mentalist.last_sync',
@@ -119,6 +120,19 @@ export function getMultiAgentCount() {
 
 export function setMultiAgentCount(n) {
   localStorage.setItem(K.MULTI_AGENT_COUNT, String(n));
+}
+
+// ---- Custom directive (user-defined personality/style) ----
+export function getCustomDirective() {
+  try {
+    return localStorage.getItem(K.CUSTOM_DIRECTIVE) || '';
+  } catch {
+    return '';
+  }
+}
+
+export function setCustomDirective(v) {
+  localStorage.setItem(K.CUSTOM_DIRECTIVE, v);
 }
 
 // ---- Get models for a mode ----
